@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react'
-import type { IStopwatch } from '../models/models'
+import React, { useEffect, useRef, useState } from 'react'
+import { StopwatchStatus, type IStopwatch } from '../models/models'
 
 interface StopwatchProps {
   stopwatch: IStopwatch;
@@ -7,31 +7,31 @@ interface StopwatchProps {
 }
 
 export default function Stopwatch({ stopwatch, setStopwatches }: StopwatchProps) {
-  const [currentStopwatch, setCurrentStopwatch] = React.useState(stopwatch);
-  const [intervalId, setIntervalId] = React.useState<number | null>(null);
-  const [cleared, setCleared] = React.useState(false);
+  const [currentStopwatch, setCurrentStopwatch] = useState(stopwatch);
+  const intervalId = useRef<number | undefined>(undefined);
 
   useEffect(() => {
-    let interval: number | null = null;
+    console.count(`Current Stopwatch: ${currentStopwatch.id}, Status: ${currentStopwatch.status}`);
 
-    if (currentStopwatch.status === 'idle' && intervalId) {
-      clearInterval(intervalId);
-      setIntervalId(null);
+    if (currentStopwatch.status === StopwatchStatus.IDLE && intervalId.current) {
+      console.count(`Clearing interval for Stopwatch ID: ${currentStopwatch.id}`);
+
+      clearInterval(intervalId.current);  // Safe even if already cleared
+      intervalId.current = undefined;
       setStopwatches(prev => prev.map(s => s.id === currentStopwatch.id ? { ...currentStopwatch } : s));
-    } else if (currentStopwatch.status === 'idle' && cleared) {
-      setStopwatches(prev => prev.map(s => s.id === currentStopwatch.id ? { ...currentStopwatch } : s));
-      setCleared(false);
-    } else if (currentStopwatch.status === 'running') {
+    } else if (currentStopwatch.status === StopwatchStatus.RUNNING) {
       const startTime = Date.now() - currentStopwatch.elapsedTime;
-      interval = window.setInterval(() => {
+      intervalId.current = window.setInterval(() => {
         setCurrentStopwatch(prev => ({ ...prev, elapsedTime: Date.now() - startTime }));
-        setStopwatches(prev => prev.map(s => s.id === currentStopwatch.id ? { ...s, elapsedTime: Date.now() - startTime } : s));
+        setStopwatches(prev => prev.map(s => s.id === currentStopwatch.id ? { ...currentStopwatch, elapsedTime: Date.now() - startTime } : s));
       }, 100);
-      setIntervalId(interval);
-    } else if (currentStopwatch.status === 'paused' && intervalId) {
-      clearInterval(intervalId);
-      setIntervalId(null);
+    } else if (currentStopwatch.status === StopwatchStatus.PAUSED) {
+      clearInterval(intervalId.current);
     }
+
+    return () => {
+      clearInterval(intervalId.current);  // Safe even if already cleared
+    };
   }, [currentStopwatch.status]);
 
   return (
@@ -49,58 +49,58 @@ export default function Stopwatch({ stopwatch, setStopwatches }: StopwatchProps)
         {new Date(stopwatch.elapsedTime).toISOString().substr(11, 8)}
       </div>
       <div className="control-buttons">
-        {currentStopwatch.status === "idle" && intervalId === null && (
-          <div className="start-button">
+        {currentStopwatch.status === StopwatchStatus.IDLE &&
+          intervalId.current === undefined && (
+            <div className="start-button">
+              <button
+                onClick={() =>
+                  setCurrentStopwatch((prev) => ({
+                    ...prev,
+                    status: StopwatchStatus.RUNNING,
+                  }))
+                }
+              >
+                Start
+              </button>
+            </div>
+          )}
+        <div className="buttons">
+          {currentStopwatch.status === StopwatchStatus.RUNNING && (
             <button
+              className="pause-button"
               onClick={() =>
-                setCurrentStopwatch((prev) => ({ ...prev, status: "running" }))
-              }
-            >
-              Start
-            </button>
-          </div>
-        )}
-        {currentStopwatch.status === "running" && (
-          <div className="buttons">
-            <button
-              className='pause-button'
-              onClick={() =>
-                setCurrentStopwatch((prev) => ({ ...prev, status: "paused" }))
+                setCurrentStopwatch((prev) => ({ ...prev, status: StopwatchStatus.PAUSED }))
               }
             >
               Pause
             </button>
+          )}
+          {currentStopwatch.status === StopwatchStatus.PAUSED && (
             <button
-              className='clear-button'
-              onClick={() => {
-                setCurrentStopwatch((prev) => ({ ...prev, status: "idle", elapsedTime: 0 }));
-              }}
-            >
-              Clear
-            </button>
-          </div>
-        )}
-        {currentStopwatch.status === "paused" && (
-          <div className="buttons">
-            <button
-              className='resume-button'
+              className="resume-button"
               onClick={() =>
-                setCurrentStopwatch((prev) => ({ ...prev, status: "running" }))
+                setCurrentStopwatch((prev) => ({ ...prev, status: StopwatchStatus.RUNNING }))
               }
             >
               Resume
             </button>
-            <button
-              className='clear-button'
-              onClick={() => {
-                setCurrentStopwatch((prev) => ({ ...prev, status: "idle", elapsedTime: 0 }));
-                setCleared(true);
-              }}
-            >
-              Clear
-            </button>
-          </div>
-        )}
+          )}
+          {(currentStopwatch.status === StopwatchStatus.RUNNING ||
+            currentStopwatch.status === StopwatchStatus.PAUSED) && (
+              <button
+                className="clear-button"
+                onClick={() => {
+                  setCurrentStopwatch((prev) => ({
+                    ...prev,
+                    status: StopwatchStatus.IDLE,
+                    elapsedTime: 0,
+                  }));
+                }}
+              >
+                Clear
+              </button>
+            )}
+        </div>
       </div>
     </div>
   );
