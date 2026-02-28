@@ -5,12 +5,13 @@ import NewStopwatch from './components/NewStopwatch';
 export default function NewApp() {
   const [stopwatches, setStopwatches] = useState<IStopwatch[]>([]);
   const intervalId = useRef<number | undefined>(undefined);
+  const runningStopwatchesCount = stopwatches.filter(sw => sw.status === StopwatchStatus.RUNNING).length;
 
   useEffect(() => {
-    console.count(`Current number of running stopwatches: ${stopwatches.filter(sw => sw.status === StopwatchStatus.RUNNING).length}`);
+    console.count(`Current number of running stopwatches: ${runningStopwatchesCount}`);
     console.count(`Interval ID before: ${intervalId.current}`);
 
-    if (stopwatches.filter(sw => sw.status === StopwatchStatus.RUNNING).length > 0) {
+    if (runningStopwatchesCount > 0) {
       intervalId.current = setInterval(() => {
         setStopwatches((prev) =>
           prev.map((sw) =>
@@ -31,7 +32,7 @@ export default function NewApp() {
       clearInterval(intervalId.current);
       intervalId.current = undefined;
     };
-  }, [stopwatches.filter(sw => sw.status === StopwatchStatus.RUNNING).length]);
+  }, [runningStopwatchesCount]);
 
   return (
     <main>

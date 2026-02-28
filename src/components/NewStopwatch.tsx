@@ -23,7 +23,7 @@ function NewStopwatch({stopwatchId, stopwatchStatus, stopwatchElapsedTime, setSt
         </button>
       </div>
       <div className="time-display">
-        {new Date(stopwatchElapsedTime).toISOString().substr(11, 8)}
+        {new Date(stopwatchElapsedTime).toISOString().slice(11, 19)}
       </div>
       <div className="control-buttons">
         {stopwatchStatus === StopwatchStatus.IDLE && (
