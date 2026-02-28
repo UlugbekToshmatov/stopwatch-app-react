@@ -1,4 +1,4 @@
-type SwStatus = 'idle' | 'running' | 'paused';
+export type SwStatus = 'idle' | 'running' | 'paused';
 
 export enum StopwatchStatus {
   IDLE = 'idle',
